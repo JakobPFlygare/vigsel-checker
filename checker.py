@@ -2,6 +2,9 @@ import urllib.request
 import urllib.parse
 import re
 import os
+from datetime import datetime, timezone, timedelta
+
+SWEDISH_TZ = timezone(timedelta(hours=2))  # CEST (UTC+2), valid for September
 
 TARGET_DATES = ["5 september 2026", "12 september 2026"]
 MAIN_URL = "https://etjanster.stockholm.se/BokaVigsel/"
@@ -53,10 +56,19 @@ def send_whatsapp(message):
         print("Notification sent, status:", resp.status)
 
 
+def is_night():
+    now = datetime.now(SWEDISH_TZ)
+    return now.hour < 7 or (now.hour == 7 and now.minute < 30)
+
+
 def main():
     if os.environ.get("TEST_MODE") == "true":
         print("Test mode — sending test WhatsApp message.")
         send_whatsapp("Vigsel checker is working! This is a test message.")
+        return
+
+    if is_night():
+        print("Nighttime in Sweden, skipping.")
         return
 
     try:
