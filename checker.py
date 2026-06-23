@@ -54,6 +54,11 @@ def send_whatsapp(message):
 
 
 def main():
+    if os.environ.get("TEST_MODE") == "true":
+        print("Test mode — sending test WhatsApp message.")
+        send_whatsapp("Vigsel checker is working! This is a test message.")
+        return
+
     try:
         html = fetch_page()
     except Exception as e:

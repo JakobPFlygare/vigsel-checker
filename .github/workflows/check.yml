@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
+    inputs:
+      test:
+        description: 'Send a test WhatsApp message'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   check:
@@ -20,3 +26,4 @@ jobs:
         env:
           CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
           CALLMEBOT_KEY: ${{ secrets.CALLMEBOT_KEY }}
+          TEST_MODE: ${{ inputs.test }}
