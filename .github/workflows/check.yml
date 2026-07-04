@@ -1,6 +1,8 @@
 name: Vigsel Checker
 
 on:
+  schedule:
+    - cron: '0 4 * * *'  # 06:00 CEST (UTC+2)
   workflow_dispatch:
     inputs:
       test:
@@ -12,13 +14,9 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 1200  # 20 hours, covers 06:00-02:00 Swedish time
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/cache@v4
-        with:
-          path: last_notified.txt
-          key: vigsel-state
 
       - run: python3 checker.py
         env:

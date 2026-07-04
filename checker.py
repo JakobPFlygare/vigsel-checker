@@ -2,13 +2,13 @@ import urllib.request
 import urllib.parse
 import re
 import os
+import time
 from datetime import datetime, timezone, timedelta
 
 SWEDISH_TZ = timezone(timedelta(hours=2))  # CEST (UTC+2), valid for September
 
 TARGET_DATES = ["5 september 2026", "12 september 2026"]
 MAIN_URL = "https://etjanster.stockholm.se/BokaVigsel/"
-LAST_NOTIFIED_FILE = "last_notified.txt"
 
 
 def fetch_page():
@@ -33,19 +33,6 @@ def find_available_targets(html):
     return available
 
 
-def load_last_notified():
-    if os.path.exists(LAST_NOTIFIED_FILE):
-        with open(LAST_NOTIFIED_FILE) as f:
-            return set(line.strip() for line in f if line.strip())
-    return set()
-
-
-def save_last_notified(dates):
-    with open(LAST_NOTIFIED_FILE, "w") as f:
-        for d in sorted(dates):
-            f.write(d + "\n")
-
-
 def send_whatsapp(message):
     phone = os.environ["CALLMEBOT_PHONE"]
     key = os.environ["CALLMEBOT_KEY"]
@@ -58,7 +45,7 @@ def send_whatsapp(message):
 
 def is_night():
     now = datetime.now(SWEDISH_TZ)
-    return now.hour < 7 or (now.hour == 7 and now.minute < 30)
+    return 2 <= now.hour < 6
 
 
 def main():
@@ -67,37 +54,38 @@ def main():
         send_whatsapp("Vigsel checker is working! This is a test message.")
         return
 
-    if is_night():
-        print("Nighttime in Sweden, skipping.")
-        return
+    notified = set()
+    print("Starting vigsel checker loop...")
 
-    try:
-        html = fetch_page()
-    except Exception as e:
-        print(f"Fetch failed: {e}")
-        return
+    while True:
+        if is_night():
+            print("Reached 02:00 Swedish time, stopping.")
+            break
 
-    available = find_available_targets(html)
+        try:
+            html = fetch_page()
+            available = find_available_targets(html)
+        except Exception as e:
+            print(f"Fetch failed: {e}")
+            time.sleep(60)
+            continue
 
-    if not available:
-        print("No available target dates found.")
-        return
+        if available:
+            print(f"Available: {available}")
+            new = [d for d in available if d not in notified]
+            if new:
+                message = "Vigsel slot open! Book now: " + ", ".join(new)
+                try:
+                    send_whatsapp(message)
+                    notified.update(new)
+                except Exception as e:
+                    print(f"Notification failed: {e}")
+            else:
+                print("Already notified about these dates.")
+        else:
+            print("No available target dates.")
 
-    print(f"Available: {available}")
-
-    last = load_last_notified()
-    new = [d for d in available if d not in last]
-
-    if not new:
-        print("Already notified about these dates, skipping.")
-        return
-
-    message = "Vigsel slot open! Book now: " + ", ".join(new)
-    try:
-        send_whatsapp(message)
-        save_last_notified(set(available))
-    except Exception as e:
-        print(f"Notification failed: {e}")
+        time.sleep(60)
 
 
 if __name__ == "__main__":
