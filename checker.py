@@ -74,7 +74,7 @@ def main():
             print(f"Available: {available}")
             new = [d for d in available if d not in notified]
             if new:
-                message = "Vigsel slot open! Book now: " + ", ".join(new)
+                message = "Vigsel slot open! " + ", ".join(new) + " - Book now: https://etjanster.stockholm.se/bokavigsel/"
                 try:
                     send_whatsapp(message)
                     notified.update(new)
